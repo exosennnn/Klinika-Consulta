@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="540" viewBox="0 0 900 540" role="img" aria-labelledby="title description">
+  <title id="title">Refined Klinika Consulta logo concept</title>
+  <desc id="description">A distinctive rounded speech bubble with a medical cross, shown as a primary dark-background logo, an app icon, and a light-background logo.</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d3f2"/>
+      <stop offset="1" stop-color="#2684ff"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151e2e"/>
+      <stop offset="1" stop-color="#0e1420"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000814" flood-opacity=".3"/>
+    </filter>
+    <symbol id="mark" viewBox="0 0 56 56">
+      <path d="M17 5h22a9 9 0 0 1 9 9v18a9 9 0 0 1-9 9H29L17 50v-9a9 9 0 0 1-9-9V14a9 9 0 0 1 9-9Z" fill="url(#blue)"/>
+      <path d="M24 13h8q2 0 2 2v6h6q2 0 2 2v8q0 2-2 2h-6v6q0 2-2 2h-8q-2 0-2-2v-6h-6q-2 0-2-2v-8q0-2 2-2h6v-6q0-2 2-2Z" fill="#fff"/>
+    </symbol>
+  </defs>
+  <rect width="900" height="540" rx="28" fill="#080d16"/>
+  <text x="50" y="52" fill="#8da2bd" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="2.4">KLINIKA CONSULTA</text>
+  <text x="50" y="78" fill="#f8fafc" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="-.25">A clearer mark for care that connects.</text>
+
+  <rect x="36" y="102" width="828" height="240" rx="22" fill="url(#panel)" stroke="#263448"/>
+  <text x="64" y="137" fill="#8da2bd" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.8">PRIMARY · DARK</text>
+  <g filter="url(#shadow)">
+    <use href="#mark" x="89" y="183" width="76" height="76"/>
+  </g>
+  <text x="185" y="229" fill="#f8fafc" font-family="Arial, Helvetica, sans-serif" font-size="47" font-weight="700" letter-spacing="-1.8">Klinika</text>
+  <text x="356" y="229" fill="#62b5ff" font-family="Arial, Helvetica, sans-serif" font-size="47" font-weight="700" letter-spacing="-1.8">Consulta</text>
+  <text x="189" y="260" fill="#9aabc0" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="500" letter-spacing=".35">CARE, CONNECTED.</text>
+  <line x1="189" y1="275" x2="489" y2="275" stroke="#2b3b51"/>
+  <text x="189" y="297" fill="#71839a" font-family="Arial, Helvetica, sans-serif" font-size="11">A conversation-led identity for modern clinic care.</text>
+
+  <text x="50" y="382" fill="#8da2bd" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.8">SMALL-SIZE APP ICON</text>
+  <rect x="52" y="399" width="88" height="88" rx="23" fill="#101b2a" stroke="#29394e"/>
+  <use href="#mark" x="68" y="415" width="56" height="56"/>
+  <text x="162" y="438" fill="#e5edf7" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">Recognizable at a glance</text>
+  <text x="162" y="461" fill="#8da2bd" font-family="Arial, Helvetica, sans-serif" font-size="12">The speech shape signals consultation;</text>
+  <text x="162" y="480" fill="#8da2bd" font-family="Arial, Helvetica, sans-serif" font-size="12">the cross signals trusted medical care.</text>
+
+  <rect x="495" y="368" width="369" height="142" rx="18" fill="#f8fafc"/>
+  <text x="521" y="396" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.8">ALTERNATE · LIGHT</text>
+  <use href="#mark" x="520" y="421" width="54" height="54"/>
+  <text x="586" y="454" fill="#142238" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" letter-spacing="-1.1">Klinika</text>
+  <text x="682" y="454" fill="#2374dd" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" letter-spacing="-1.1">Consulta</text>
+  <text x="588" y="476" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="600" letter-spacing=".5">CARE, CONNECTED.</text>
+</svg>
