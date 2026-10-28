@@ -283,6 +283,8 @@ function ensure_schema(PDO $pdo) {
             'users' => [
                 'doctor_id'      => 'INT DEFAULT NULL',
                 'contact_number' => 'VARCHAR(20) DEFAULT NULL',
+                'terms_version'  => 'VARCHAR(20) DEFAULT NULL',
+                'terms_accepted_at' => 'DATETIME DEFAULT NULL',
             ],
         ];
         foreach ($need as $table => $cols) {
@@ -302,7 +304,7 @@ function ensure_schema(PDO $pdo) {
             if (in_array($r['COLUMN_NAME'], $keep, true)) continue;
             $pdo->exec("ALTER TABLE appointments MODIFY `{$r['COLUMN_NAME']}` {$r['COLUMN_TYPE']} NULL DEFAULT NULL");
         }
-    } catch (Throwable $e) { /* do not kill the request because of this */ }
+    } catch (Throwable $e) { error_log('[Klinika Consulta] non-fatal schema step failed: ' . $e->getMessage()); }
 
     // Every doctor must have their OWN and CORRECT account (so they can see appointments forwarded to them)
     try {
@@ -397,7 +399,7 @@ function ensure_schema(PDO $pdo) {
 
         // (d) Old lowercase status ('accept') -> 'Booked'
         $pdo->exec("UPDATE appointments SET status = 'Booked' WHERE status IN ('accept','accepted','booked')");
-    } catch (Throwable $e) { /* do not kill the request because of this */ }
+    } catch (Throwable $e) { error_log('[Klinika Consulta] non-fatal schema step failed: ' . $e->getMessage()); }
 
     // Hash any leftover plain-text passwords from older versions
     try {
@@ -467,9 +469,17 @@ function apply_leave_block(PDO $pdo, int $doctorId, string $start, string $end, 
     return $u->rowCount();
 }
 
-// Create any missing table (existing ones are untouched)
+// Create any missing table (existing ones are untouched).
+// The sweep runs only when this file changes (stamp file), not on every API request.
 try {
-    ensure_schema($pdo);
+    $schemaStamp = __DIR__ . '/.schema_version';
+    $schemaVersion = md5_file(__FILE__) . ':' . $db;
+    // Also re-check when the database was emptied or recreated (core table missing).
+    $coreMissing = !(bool)$pdo->query("SHOW TABLES LIKE 'appointments'")->fetchColumn();
+    if ($coreMissing || !is_file($schemaStamp) || trim((string)file_get_contents($schemaStamp)) !== $schemaVersion) {
+        ensure_schema($pdo);
+        file_put_contents($schemaStamp, $schemaVersion, LOCK_EX);
+    }
 } catch (Throwable $e) {
     error_log('[Klinika Consulta] Schema setup failed: ' . $e->getMessage());
     json_out(['success' => false, 'message' => 'Database setup failed. Check the PHP error log.'], 500);

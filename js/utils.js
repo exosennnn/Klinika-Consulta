@@ -28,7 +28,18 @@
     return `${String(h % 12 || 12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
   };
 
-  const statusLabel = (st) => (st || '').replace(/_/g, ' ');
+  const STATUS_INFO = {
+    Pending:            { label: 'Waiting for doctor approval', help: 'Your request was received. The doctor will review it shortly.' },
+    Booked:             { label: 'Confirmed', help: 'Your appointment is set. Please arrive on time.' },
+    Proposed:           { label: 'New time suggested', help: 'The clinic suggested a different time. Please accept or decline it.' },
+    Needs_Reassignment: { label: 'Being moved to another doctor', help: 'Your doctor is unavailable. The clinic is arranging a new doctor or time for you.' },
+    Checked_In:         { label: 'Checked in', help: 'You are in the clinic queue. Please wait to be called.' },
+    Completed:          { label: 'Completed', help: 'Your visit is complete.' },
+    Cancelled:          { label: 'Cancelled', help: 'This appointment was cancelled. The slot has been released.' },
+    Declined:           { label: 'Not accepted', help: 'The doctor could not accept this request. You can book another time.' },
+  };
+  const statusLabel = (st) => (STATUS_INFO[st] ? STATUS_INFO[st].label : (st || '').replace(/_/g, ' '));
+  const statusHelp = (st) => (STATUS_INFO[st] ? STATUS_INFO[st].help : '');
   const statusClass = (st) => ({
     Pending: 'bg-amber-950 text-amber-400 border-amber-800',
     Booked: 'bg-emerald-950 text-emerald-400 border-emerald-800',
@@ -41,5 +52,5 @@
   const canModify = (app) => ['Pending', 'Booked', 'Needs_Reassignment'].includes(app.status);
 
 
-  window.KlinikaConsultaUtils = { TIME_SLOTS, DAY_NAMES, esc, fmtTime, statusLabel, statusClass, canModify };
+  window.KlinikaConsultaUtils = { TIME_SLOTS, DAY_NAMES, esc, fmtTime, statusLabel, statusHelp, statusClass, canModify };
 })();

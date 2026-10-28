@@ -3,7 +3,7 @@ const { createApp, ref, computed, onMounted } = Vue;
 const App = {
   template: APP_TEMPLATE,
   setup() {
-    const { TIME_SLOTS, DAY_NAMES, esc, fmtTime, statusLabel, statusClass, canModify } = window.KlinikaConsultaUtils;
+    const { TIME_SLOTS, DAY_NAMES, esc, fmtTime, statusLabel, statusHelp, statusClass, canModify } = window.KlinikaConsultaUtils;
     const swalDark = { background: '#121216', color: '#fff' };
     const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
@@ -41,7 +41,7 @@ const App = {
     const authMode = ref('login');   // 'login' | 'register'
     const showAuth = ref(false);
     const profileForm = ref({ full_name: '', contact_number: '' });
-    const registerForm = ref({ first_name: '', last_name: '', contact_number: '', username: '', password: '', confirm: '' });
+    const registerForm = ref({ first_name: '', last_name: '', contact_number: '', username: '', password: '', confirm: '', terms: false });
     const guestBookingBusy = ref(false);
     const specialties = ref([]);
     const doctors = ref([]);
@@ -107,6 +107,9 @@ const App = {
 
     const search = ref('');
     const statusFilter = ref('');
+    const dateFilter = ref('');
+    const mobileMenu = ref(false);
+    const doctorFilter = ref('');
     let refreshTimer = null;
     let messageTimer = null;
 
@@ -235,7 +238,7 @@ const App = {
     };
 
     const handleRegister = async () => {
-      if (registerForm.value.email && !registerForm.value.email_verification_token) { toast('Verify your email before registering.','error'); return; }
+      if (!registerForm.value.email || !registerForm.value.email_verification_token) { toast('Enter and verify your email before registering.','error'); return; }
       const f = registerForm.value;
       const firstName = f.first_name.trim().replace(/\s+/g, ' ');
       const lastName = f.last_name.trim().replace(/\s+/g, ' ');
@@ -250,14 +253,16 @@ const App = {
         toast('Invalid number.', 'error'); return;
       }
       if (f.password !== f.confirm) { toast('Passwords do not match.', 'error'); return; }
+      if (!f.terms) { toast('Please read and accept the Terms and Conditions.', 'error'); return; }
       await busy(async () => {
         const data = await api('backend/api/register.php', {
           first_name: firstName, last_name: lastName, contact_number: f.contact_number,
-          username: f.username.trim(), password: f.password, email: f.email || '', email_verification_token: f.email_verification_token || ''
+          username: f.username.trim(), password: f.password, email: f.email || '', email_verification_token: f.email_verification_token || '',
+          terms_accepted: true, terms_version: '2026-10-28'
         });
         if (data && data.success) {
           loginForm.value = { username: data.username || f.username.trim(), password: '' };
-          registerForm.value = { first_name: '', last_name: '', contact_number: '', username: '', password: '', confirm: '' };
+          registerForm.value = { first_name: '', last_name: '', contact_number: '', username: '', password: '', confirm: '', terms: false };
           authMode.value = 'login';
           toast('Account created. Please log in.');
         }
@@ -489,10 +494,14 @@ const App = {
       return !!a.followup_timeframe || a.status === 'Proposed';
     }).sort((a,b) => (b.appointment_date+b.appointment_time).localeCompare(a.appointment_date+a.appointment_time)));
 
+    const statusProgress = (app) => ({ Pending: .33, Needs_Reassignment: .33, Declined: .33, Proposed: .66, Booked: .66, Checked_In: .85, Completed: 1, Cancelled: 0 }[app.status] ?? .33);
+    const apptDoctorOptions = computed(() => [...new Set(appointments.value.map(a => a.doctor_name).filter(Boolean))].sort());
     const filteredAppointments = computed(() => {
       const q = search.value.trim().toLowerCase();
       return appointments.value.filter(a => {
         if (statusFilter.value && a.status !== statusFilter.value) return false;
+        if (dateFilter.value && a.appointment_date !== dateFilter.value) return false;
+        if (doctorFilter.value && a.doctor_name !== doctorFilter.value) return false;
         if (!q) return true;
         return [a.reference_code, a.patient_name, a.doctor_name, a.specialty_name, a.contact_number]
           .some(v => (v || '').toLowerCase().includes(q));
@@ -603,6 +612,11 @@ const App = {
       ((app.status === 'Booked' || app.status === 'Proposed') && app.patient_id && !Number(app.patient_notified)) ||
       (app.status === 'Completed' && app.followup_timeframe && !Number(app.followup_relayed));
 
+    const hasAppointmentActions = (app) =>
+      hasCoordAction(app) ||
+      ((app.booked_by_role === 'coordinator' || app.booked_by_role === 'guest') && !app.patient_id) ||
+      app.status === 'Booked';
+
     const myDoctor = computed(() =>
       doctors.value.find(d => currentUser.value && d.id == currentUser.value.doctor_id) || null);
 
@@ -655,8 +669,42 @@ const App = {
       const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
       return appointments.value.filter(a=>a.appointment_date>=iso(start)&&a.appointment_date<=iso(end)).slice().sort((a,b)=>(a.appointment_date+a.appointment_time).localeCompare(b.appointment_date+b.appointment_time));
     });
-    const calendarTitle = computed(()=> calendarMode.value==='day' ? calendarDate.value : calendarMode.value==='week' ? 'Week of '+calendarDate.value : new Date(calendarDate.value+'T00:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'}));
-    const moveCalendar = n => { const d=new Date(calendarDate.value+'T00:00:00'); d.setDate(d.getDate()+n*(calendarMode.value==='day'?1:calendarMode.value==='week'?7:30)); calendarDate.value=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+    const calendarGroups = computed(() => {
+      const groups = new Map();
+      calendarItems.value.forEach(app => {
+        if (!groups.has(app.appointment_date)) groups.set(app.appointment_date, []);
+        groups.get(app.appointment_date).push(app);
+      });
+      return Array.from(groups, ([date, items]) => ({
+        date,
+        label: new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
+        items
+      }));
+    });
+    const calendarTitle = computed(() => {
+      const date = new Date(`${calendarDate.value}T00:00:00`);
+      if (calendarMode.value === 'day') return calendarDate.value;
+      if (calendarMode.value === 'week') {
+        date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+        return 'Week of ' + new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      }
+      return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    });
+    const moveCalendar = amount => {
+      const date = new Date(`${calendarDate.value}T00:00:00`);
+      if (calendarMode.value === 'month') {
+        const dayOfMonth = date.getDate();
+        date.setDate(1);
+        date.setMonth(date.getMonth() + amount);
+        date.setDate(Math.min(dayOfMonth, new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()));
+      } else {
+        date.setDate(date.getDate() + amount * (calendarMode.value === 'day' ? 1 : 7));
+      }
+      calendarDate.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    };
+    // Public (signed-out) pages are always light; signed-in users keep their saved preference.
+    const applyTheme = () => document.documentElement.classList.toggle('dm-light', !currentUser.value || lightMode.value);
+    Vue.watch([currentUser, lightMode], applyTheme, { immediate: true });
     const toggleLightMode=()=>{ lightMode.value=!lightMode.value; localStorage.setItem('klinika_consulta_light',lightMode.value?'1':'0'); document.documentElement.classList.toggle('dm-light',lightMode.value); };
     const toggleNotifPref=()=>{ notifEnabled.value=!notifEnabled.value; localStorage.setItem('klinika_consulta_notifs',notifEnabled.value?'1':'0'); toast(notifEnabled.value?'Notification indicators enabled.':'Notification indicators muted.'); };
     const toggleCompactMode = () => { compactMode.value=!compactMode.value; if(typeof localStorage!=='undefined') localStorage.setItem('klinika_consulta_compact', compactMode.value?'1':'0'); if(typeof document!=='undefined') document.documentElement.classList.toggle('dm-compact',compactMode.value); toast(compactMode.value?'Compact view enabled.':'Comfortable view enabled.'); };
@@ -817,17 +865,42 @@ const App = {
     const cancelAppointment = async (id) => {
       const r = await Swal.fire({
         title: 'Cancel this appointment?',
-        input: 'text',
-        inputLabel: 'Cancellation Reason (Optional)',
+        html: '<p style="font-size:14px;line-height:1.5">Cancelling releases your time slot for another patient. This cannot be undone. Please tell us why you are cancelling.</p>',
+        input: 'select',
+        inputOptions: {
+          'Schedule conflict': 'Schedule conflict',
+          'No longer needed': 'No longer needed',
+          'Booked by mistake': 'Booked by mistake',
+          'Other': 'Other (please specify)'
+        },
+        inputPlaceholder: 'Choose a reason',
+        inputValidator: (v) => (v ? null : 'Please choose a reason to continue.'),
         showCancelButton: true,
-        confirmButtonText: 'Yes, cancel',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: 'Yes, cancel appointment',
+        confirmButtonColor: '#dc2626',
+        cancelButtonText: 'Keep appointment',
         ...swalDark
       });
-      if (!r.isConfirmed) return;   // previously continued even after pressing Cancel
+      if (!r.isConfirmed) return;   // pressing "Keep appointment" or closing does nothing
+
+      let reason = r.value;
+      if (reason === 'Other') {
+        const o = await Swal.fire({
+          title: 'Tell us the reason',
+          input: 'text',
+          inputAttributes: { maxlength: '200', 'aria-label': 'Cancellation reason' },
+          inputValidator: (v) => ((v || '').trim().length < 3 ? 'Please enter at least 3 characters.' : null),
+          showCancelButton: true,
+          confirmButtonText: 'Submit',
+          cancelButtonText: 'Back',
+          ...swalDark
+        });
+        if (!o.isConfirmed) return;
+        reason = o.value.trim();
+      }
 
       await busy(async () => {
-        const data = await api('backend/api/patient_actions.php', { action: 'cancel', appointment_id: id, reason: r.value });
+        const data = await api('backend/api/patient_actions.php', { action: 'cancel', appointment_id: id, reason });
         if (data.success) { toast('Appointment cancelled.'); await loadData(); }
       });
     };
@@ -1495,7 +1568,7 @@ const App = {
           <div class="guest-form-grid"><div class="guest-full"><label class="guest-field-label">Full name *</label><input id="g-name" class="swal2-input guest-swal-input" placeholder="Juan Dela Cruz" autocomplete="name"></div>
           <div><label class="guest-field-label">Mobile number *</label><input id="g-phone" class="swal2-input guest-swal-input" placeholder="09XXXXXXXXX" inputmode="numeric" maxlength="11" autocomplete="tel"></div>
           <div><label class="guest-field-label">Email <small>optional</small></label><input id="g-email" type="email" class="swal2-input guest-swal-input" placeholder="name@email.com" autocomplete="email"></div></div>
-          <div class="guest-security-note">Mobile number is required. Email is optional. If provided, you must verify it with a one-time code.</div>`,
+          <div class="guest-security-note">Mobile number verification via SMS is required. Email is optional.</div>`,
         confirmButtonText:'Continue', showCancelButton:true, cancelButtonText:'Cancel', width:680, ...swalDark,
         preConfirm:()=>{
           const full_name=document.getElementById('g-name').value.trim().replace(/\s+/g,' ');
@@ -1510,14 +1583,13 @@ const App = {
       if(!personal.isConfirmed) return;
       const p=personal.value;
 
-      // Email verification is required whenever an email is supplied.
-      // Guests without email may still request a visit while SMS is unavailable.
+      // Guest bookings always require SMS verification; email is optional.
       let verification_token = '';
-      if (p.email) {
+      {
         const sent = await api('backend/api/guest_send_otp.php',
-          {...p, channel:'email'}, {silent:true});
+          {...p, channel:'sms'}, {silent:true});
         if (!sent || !sent.success) {
-          await Swal.fire({icon:'error', title:'Email verification unavailable',
+          await Swal.fire({icon:'error', title:'SMS verification unavailable',
             text:(sent && sent.message) || 'Unable to send the verification code.',
             ...swalDark});
           return;
@@ -1525,11 +1597,11 @@ const App = {
         let verified = false;
         while (!verified) {
           const entry = await Swal.fire({
-            title:'Verify your email',
-            html:`<div class="guest-mini-copy">We sent a 6-digit code to <b>${esc(p.email)}</b>. It expires in 5 minutes.</div>
+            title:'Verify your mobile number',
+            html:`<div class="guest-mini-copy">We sent a 6-digit code to <b>${esc(p.contact_number)}</b>. It expires in 5 minutes.</div>
               <label class="guest-field-label">Verification code</label>
               <input id="g-otp" class="swal2-input guest-swal-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">`,
-            confirmButtonText:'Verify email', showCancelButton:true, cancelButtonText:'Cancel',
+            confirmButtonText:'Verify SMS', showCancelButton:true, cancelButtonText:'Cancel',
             showDenyButton:true, denyButtonText:'Resend code', ...swalDark,
             preConfirm:()=>{
               const code=document.getElementById('g-otp').value.trim();
@@ -1540,7 +1612,7 @@ const App = {
           if (entry.isDismissed) return;
           if (entry.isDenied) {
             const again=await api('backend/api/guest_send_otp.php',
-              {...p,channel:'email'}, {silent:true});
+              {...p,channel:'sms'}, {silent:true});
             if (!again || !again.success) {
               await Swal.fire({icon:'error',title:'Cannot resend code',
                 text:(again&&again.message)||'Try again later.',...swalDark});
@@ -1603,7 +1675,7 @@ const App = {
       const booked=await api('backend/api/guest_book.php',{...p,...details.value,verification_token},{silent:true});
       if(!booked||!booked.success){ await Swal.fire({icon:'error',title:'Request not submitted',text:(booked&&booked.message)||'Please try again.',...swalDark}); return; }
       const done=await Swal.fire({
-        icon:'success', title:'Request sent!',
+        iconHtml:'<svg class="klinika-check" viewBox="0 0 52 52" aria-hidden="true" focusable="false"><circle class="klinika-check-circle" cx="26" cy="26" r="24" fill="none"/><path class="klinika-check-tick" fill="none" d="M15 27 L23 34 L37 19"/></svg>', title:'Request sent!',
         html:`<div class="guest-success"><span>YOUR TRACKING CODE</span><strong>${esc(booked.reference_code)}</strong><p>Save this code. Your request is <b>not yet confirmed</b> until the clinic reviews it.</p></div><div class="guest-mini-copy">You can create an optional patient account. After logging in, use "Link Guest Appointment" to securely attach this request to your history.</div>`,
         confirmButtonText:'Done', showDenyButton:true, denyButtonText:'Create optional account', ...swalDark
       });
@@ -1614,7 +1686,7 @@ const App = {
     onMounted(() => {
       if (typeof document !== 'undefined') {
         document.documentElement.classList.toggle('dm-compact', compactMode.value);
-        document.documentElement.classList.toggle('dm-light', lightMode.value);
+        applyTheme();
         document.title = `${publicPageTitles[publicPage.value]} | Klinika Consulta`;
       }
       if (typeof window !== 'undefined') window.addEventListener('popstate', syncPublicPage);
@@ -1623,17 +1695,17 @@ const App = {
 
     return {
       TIME_SLOTS, today,
-      currentUser, activeRole, navPage, sidebarOpen, toggleSidebar, publicPage, navigatePublic, isLoading, loginForm, authMode, showAuth, registerForm, handleRegister, forgotPassword, verifyRegistrationEmail, linkWalkinCoordinator, openGuestBooking, openGuestTracker, openGuestClaim,
+      currentUser, activeRole, navPage, sidebarOpen, mobileMenu, toggleSidebar, publicPage, navigatePublic, isLoading, loginForm, authMode, showAuth, registerForm, handleRegister, forgotPassword, verifyRegistrationEmail, linkWalkinCoordinator, openGuestBooking, openGuestTracker, openGuestClaim,
       specialties, doctors, publicAvailability, publicAvailabilityLoaded, publicAvailabilityFailed, appointments, hasActiveAppointment, notifications, unreadNotifs, showNotifs,
       selectedSpecialtyId, chosenComplaint, complaintChoices, chooseComplaint, selectComplaint, chooseSpecialtyManually, bookingForms, slotInfo, search, statusFilter,
-      filteredDoctors, doctorApps, followupAppointments, filteredAppointments, statusCounts, activeAppointments, historyAppointments, todayQueue, todayPendingRequests, completionRate, specialtyReport, downloadDoctorSchedule,
-      fmtTime, statusLabel, statusClass, canModify, appointmentNextStep, doctorYears, doctorFocus, isTaken, isSlotDisabled, canSubmit, onDateChange, availableDatesForDoctor, availableWeekdaysForDoctor, isBookingWeekdaySelected, selectAvailableWeekday, selectAvailableDate, openPatientBooking,
-      handleLogin, handleLogout, openProfile, openSettings, toggleNotifDropdown, openDoctorRequests, canReviewNotification, submitReservation, compactMode, toggleCompactMode, lightMode, toggleLightMode, notifEnabled, toggleNotifPref, calendarMode, calendarDate, calendarItems, calendarTitle, moveCalendar, activityLogs, messageConversations, messages, selectedConversationId, messageDraft, unreadMessages, loadMessages, openConversation, selectedConversationTitle, sendMessage, bookWithDoctor, showAppointmentDetails, printAppointment,
+      filteredDoctors, doctorApps, followupAppointments, filteredAppointments, apptDoctorOptions, dateFilter, doctorFilter, statusCounts, activeAppointments, historyAppointments, todayQueue, todayPendingRequests, completionRate, specialtyReport, downloadDoctorSchedule,
+      fmtTime, statusLabel, statusHelp, statusProgress, statusClass, canModify, appointmentNextStep, doctorYears, doctorFocus, isTaken, isSlotDisabled, canSubmit, onDateChange, availableDatesForDoctor, availableWeekdaysForDoctor, isBookingWeekdaySelected, selectAvailableWeekday, selectAvailableDate, openPatientBooking,
+      handleLogin, handleLogout, openProfile, openSettings, toggleNotifDropdown, openDoctorRequests, canReviewNotification, submitReservation, compactMode, toggleCompactMode, lightMode, toggleLightMode, notifEnabled, toggleNotifPref, calendarMode, calendarDate, calendarItems, calendarGroups, calendarTitle, moveCalendar, activityLogs, messageConversations, messages, selectedConversationId, messageDraft, unreadMessages, loadMessages, openConversation, selectedConversationTitle, sendMessage, bookWithDoctor, showAppointmentDetails, printAppointment,
       doctorDecision, setFollowupAdvice, reassignApp, cancelAppointment, createDoctorAccount,
       rescheduleAppointment, fileLeave, openWalkinModal,
       forwardToDoctor, decideLeave, stageText, leaves, pendingLeaves,
       relayToPatient, scheduleFollowup, checkInPatient, doctorComplete, editWorkSchedule, addCommitment, removeBlockout,
-      schedule, showSchedule, workdayLabel, doctorScheduleLabel, hasCoordAction, myDoctor
+      schedule, showSchedule, workdayLabel, doctorScheduleLabel, hasCoordAction, hasAppointmentActions, myDoctor
     };
   }
 };

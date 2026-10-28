@@ -297,11 +297,11 @@ function dm_send_guest_followup_notice(PDO $pdo, int $appointmentId): bool {
         return false;
     }
 }
-function dm_send_sms_otp(string $number,string $code): array {
-    $key=dm_cfg('KLINIKA_SEMAPHORE_API_KEY');
-    if($key==='') return [false,'SMS OTP is not configured yet. Add Semaphore credentials in backend/config.php, or choose email verification.'];
-    $fields=['apikey'=>$key,'number'=>$number,'message'=>"Klinika Consulta verification code: $code. It expires in 5 minutes."];
-    $sender=dm_cfg('KLINIKA_SEMAPHORE_SENDER'); if($sender!=='')$fields['sendername']=$sender;
-    [$ok,$info]=dm_http_post('https://api.semaphore.co/api/v4/messages',['Content-Type: application/x-www-form-urlencoded'],http_build_query($fields));
-    return [$ok,$ok?'Verification code sent by SMS.':'SMS provider error: '.$info];
+function dm_send_sms_otp(string $number, string $code): array {
+    // Keep the IPROG provider credentials out of shared source archives.
+    $adapter = __DIR__ . '/sms_gateway_private.php';
+    if (!is_file($adapter)) return [false, 'SMS OTP is not configured on this server. Contact the administrator.'];
+    require_once $adapter;
+    if (!function_exists('klinika_private_send_sms')) return [false, 'Private SMS adapter is invalid.'];
+    return klinika_private_send_sms($number, $code);
 }

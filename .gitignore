@@ -1,1 +1,10 @@
+# Private credentials - never commit or share
 /backend/config.php
+/backend/sms_gateway_private.php
+
+# Local state and generated files
+/backend/.schema_version
+*.zip
+*.log
+.DS_Store
+Thumbs.db

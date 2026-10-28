@@ -1,1 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" role="img" aria-label="Illustration of a doctor and patient at a clinic"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#164e63"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs><rect width="960" height="620" fill="url(#g)"/><circle cx="765" cy="125" r="170" fill="#93c5fd" opacity=".09"/><circle cx="140" cy="480" r="240" fill="#93c5fd" opacity=".08"/><rect x="125" y="400" width="720" height="25" rx="12" fill="#0b1220"/><rect x="210" y="430" width="22" height="125" rx="8" fill="#64748b"/><rect x="755" y="430" width="22" height="125" rx="8" fill="#64748b"/><circle cx="338" cy="217" r="69" fill="#f4c7a6"/><path d="M270 214Q270 124 341 135Q409 132 405 213L392 185Q350 199 285 178Z" fill="#172033"/><path d="M235 400V338Q242 271 316 272H362Q440 277 445 338V400Z" fill="#f8fafc"/><path d="M331 282L356 365L382 282" fill="#dbeafe"/><path d="M325 284L353 325L378 284" fill="none" stroke="#64748b" stroke-width="6"/><path d="M401 306Q463 331 458 385" fill="none" stroke="#38bdf8" stroke-width="9"/><circle cx="458" cy="384" r="15" fill="#38bdf8"/><circle cx="630" cy="235" r="63" fill="#c78c6a"/><path d="M570 231Q555 161 632 162Q701 164 691 235L674 210Q619 194 578 221Z" fill="#111827"/><path d="M535 400V342Q548 292 604 292H658Q716 294 728 346V400Z" fill="#60a5fa"/><rect x="465" y="345" width="70" height="9" rx="5" fill="#cbd5e1"/><rect x="445" y="316" width="80" height="92" rx="7" fill="#e2e8f0"/><path d="M463 338H507M463 355H507M463 372H493" stroke="#94a3b8" stroke-width="6"/><circle cx="850" cy="100" r="32" fill="#93c5fd" opacity=".7"/><path d="M850 83V117M833 100H867" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/><text x="55" y="570" fill="#e2e8f0" font-size="25" font-family="Arial,sans-serif">Compassionate consultations</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" role="img" aria-label="Illustration of a doctor and patient in a consultation">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="0.55" stop-color="#1e40af"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#bae6fd" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#bae6fd" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="desk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="960" height="620" fill="url(#bg)"/>
+  <circle cx="820" cy="120" r="240" fill="url(#glow)"/>
+  <circle cx="120" cy="520" r="260" fill="url(#glow)"/>
+
+  <!-- wall window -->
+  <rect x="60" y="70" width="210" height="160" rx="18" fill="#ffffff" fill-opacity="0.08"/>
+  <path d="M165 70 V230 M60 150 H270" stroke="#ffffff" stroke-opacity="0.15" stroke-width="3"/>
+
+  <!-- monitor with heartbeat -->
+  <rect x="650" y="150" width="230" height="150" rx="16" fill="#0f172a" fill-opacity="0.85"/>
+  <rect x="664" y="164" width="202" height="122" rx="10" fill="#0b1220"/>
+  <polyline points="676,236 716,236 730,206 744,260 758,222 772,236 890,236" fill="none" stroke="#5eead4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="740" y="300" width="50" height="14" rx="4" fill="#334155"/>
+
+  <!-- doctor -->
+  <path d="M290 500 C290 395 325 330 370 318 C415 330 450 395 450 500 Z" fill="url(#coat)"/>
+  <path d="M360 318 L370 372 L380 318" fill="#e2e8f0"/>
+  <path d="M352 330 C338 350 332 385 336 412" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="370" cy="240" r="52" fill="#f5c9a0"/>
+  <path d="M318 232 C318 190 348 176 372 176 C402 176 424 196 422 232 C408 214 384 206 360 208 C344 210 330 218 318 232 Z" fill="#1e293b"/>
+  <circle cx="352" cy="244" r="4" fill="#1e293b"/>
+  <circle cx="388" cy="244" r="4" fill="#1e293b"/>
+  <path d="M358 268 Q370 277 382 268" fill="none" stroke="#9a5b3c" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- clipboard -->
+  <rect x="446" y="352" width="58" height="72" rx="8" fill="#e2e8f0"/>
+  <rect x="462" y="346" width="26" height="12" rx="4" fill="#94a3b8"/>
+  <path d="M458 378 H492 M458 394 H492 M458 410 H480" stroke="#64748b" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- patient -->
+  <path d="M530 500 C530 430 556 388 598 378 C640 388 668 430 668 500 Z" fill="url(#shirt)"/>
+  <circle cx="598" cy="318" r="46" fill="#c08a64"/>
+  <path d="M552 316 C552 280 574 268 598 268 C624 268 646 282 644 316 C632 300 616 292 598 292 C578 292 562 300 552 316 Z" fill="#0f172a"/>
+  <path d="M586 336 Q598 344 610 336" fill="none" stroke="#7c4a2d" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- desk -->
+  <rect x="236" y="496" width="500" height="22" rx="11" fill="url(#desk)"/>
+  <rect x="268" y="516" width="16" height="70" rx="6" fill="#334155"/>
+  <rect x="676" y="516" width="16" height="70" rx="6" fill="#334155"/>
+
+  <!-- plus badge -->
+  <circle cx="110" cy="104" r="26" fill="#5eead4"/>
+  <path d="M110 90 V118 M96 104 H124" stroke="#0f172a" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- caption pill -->
+  <rect x="48" y="548" width="290" height="48" rx="24" fill="#ffffff" fill-opacity="0.16"/>
+  <text x="72" y="579" fill="#ffffff" font-size="22" font-weight="600" font-family="Arial, sans-serif">Here for your health</text>
+</svg>

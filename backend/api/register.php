@@ -1,6 +1,7 @@
 <?php
 // Patient self-registration. Always creates a 'patient' account; staff accounts are never self-service.
 require_once __DIR__ . '/../db.php';
+const KLINIKA_TERMS_VERSION = '2026-10-28';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     json_out(['success' => false, 'message' => 'Invalid request.'], 405);
@@ -16,7 +17,7 @@ try {
     $contact  = (string)($d['contact_number'] ?? '');
     $email = strtolower(trim((string)($d['email'] ?? '')));
     $emailToken = trim((string)($d['email_verification_token'] ?? ''));
-    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) json_out(['success'=>false,'message'=>'Invalid email address.'],422);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) json_out(['success'=>false,'message'=>'Invalid email address.'],422);
 
     if (!preg_match('/^[A-Za-z0-9_.]{3,30}$/', $username)) {
         json_out(['success' => false, 'message' => 'Username must be 3-30 characters: letters, numbers, dot or underscore.'], 422);
@@ -43,15 +44,20 @@ try {
     if (strcasecmp($password, $username) === 0) {
         json_out(['success' => false, 'message' => 'Password must not be the same as your username.'], 422);
     }
+    // Terms & Conditions: must accept the current version. Bump TERMS_VERSION whenever terms.html changes.
+    $termsAccepted = ($d['terms_accepted'] ?? false) === true;
+    if (!$termsAccepted || ($d['terms_version'] ?? '') !== KLINIKA_TERMS_VERSION) {
+        json_out(['success' => false, 'message' => 'Please read and accept the Terms and Conditions to create an account.'], 422);
+    }
 
-    if ($email !== '') {
+    {
         $v=$pdo->prepare("SELECT id FROM guest_otp_verifications WHERE verification_token=? AND verified=1 AND channel='email' AND LOWER(email_address)=? AND contact_number=? AND expires_at>=NOW() LIMIT 1");
         $v->execute([$emailToken,$email,$contact]);
         if (!$v->fetchColumn()) json_out(['success'=>false,'message'=>'Verify your email before registering.'],422);
     }
     try {
-        $pdo->prepare("INSERT INTO users (username, password, full_name, role, contact_number, email_address, email_verified) VALUES (?,?,?,'patient',?,?,?)")
-            ->execute([$username, password_hash($password, PASSWORD_DEFAULT), $fullName, $contact, $email ?: null, $email ? 1 : 0]);
+        $pdo->prepare("INSERT INTO users (username, password, full_name, role, contact_number, email_address, email_verified, terms_version, terms_accepted_at) VALUES (?,?,?,'patient',?,?,?,?,NOW())")
+            ->execute([$username, password_hash($password, PASSWORD_DEFAULT), $fullName, $contact, $email ?: null, $email ? 1 : 0, KLINIKA_TERMS_VERSION]);
     } catch (PDOException $e) {
         if ($e->getCode() === '23000') {
             json_out(['success' => false, 'message' => 'That username is already taken.'], 409);

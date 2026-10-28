@@ -17,15 +17,11 @@ try {
         json_out(['success' => false, 'message' => 'Enter a valid email address or leave it blank.'], 422);
     }
     $verificationToken = trim((string)($d['verification_token'] ?? ''));
-    $emailVerified = false;
-    if ($email !== '') {
-        if (!preg_match('/^[a-f0-9]{64}$/D', $verificationToken)) json_out(['success'=>false,'message'=>'Verify your email before submitting.'],422);
-        $verify = $pdo->prepare("SELECT id FROM guest_otp_verifications WHERE verification_token = ? AND verified = 1 AND channel = 'email' AND LOWER(email_address) = ? AND contact_number = ? AND LOWER(TRIM(full_name)) = LOWER(TRIM(?)) AND expires_at >= NOW() LIMIT 1");
-        $verify->execute([$verificationToken,$email,$phone,$name]);
-        $verifiedRow = $verify->fetch();
-        if (!$verifiedRow) json_out(['success'=>false,'message'=>'Email verification expired or does not match your details.'],422);
-        $emailVerified = true;
-    }
+    if (!preg_match('/^[a-f0-9]{64}$/D', $verificationToken)) json_out(['success'=>false,'message'=>'Verify your mobile number via SMS before submitting.'],422);
+    $verify = $pdo->prepare("SELECT id FROM guest_otp_verifications WHERE verification_token = ? AND verified = 1 AND channel = 'sms' AND contact_number = ? AND LOWER(TRIM(full_name)) = LOWER(TRIM(?)) AND expires_at >= NOW() LIMIT 1");
+    $verify->execute([$verificationToken,$phone,$name]);
+    $verifiedRow = $verify->fetch();
+    if (!$verifiedRow) json_out(['success'=>false,'message'=>'SMS verification expired or does not match your details.'],422);
     if (preg_match('/^\d{2}:\d{2}$/', $time)) $time .= ':00';
     if (mb_strlen($reason) > 500) json_out(['success' => false, 'message' => 'Reason for visit is too long.'], 422);
     if ($date < date('Y-m-d')) json_out(['success' => false, 'message' => 'Choose a future appointment date.'], 422);
@@ -79,16 +75,16 @@ try {
     $ins = $pdo->prepare("INSERT INTO appointments
         (reference_code,patient_id,patient_name,contact_number,email_address,contact_verified,verification_channel,specialty_id,doctor_id,appointment_date,appointment_time,status,booked_by_role,forwarded_to_doctor,patient_notified,reason_for_visit)
         VALUES (?,NULL,?,?,?,?,?,?,?,?,?,'Pending','guest',1,0,?)");
-    $ins->execute([$ref, $name, $phone, $email ?: null, $emailVerified ? 1 : 0, $emailVerified ? 'email' : 'not_verified', $dr['specialty_id'], $doctor, $date, $time, $reason ?: null]);
+    $ins->execute([$ref, $name, $phone, $email ?: null, 1, 'sms', $dr['specialty_id'], $doctor, $date, $time, $reason ?: null]);
     $aid = (int)$pdo->lastInsertId();
 
     notify_doctor($pdo, $doctor, 'New Guest Appointment Request', "$name - $date " . substr($time, 0, 5) . " ($ref). Please review.");
-    notify($pdo, 'coordinator', null, 'New Guest Reservation', "$name - $date " . substr($time, 0, 5) . " ($ref). Email OTP is enabled when an email is provided; SMS is not active.");
+    notify($pdo, 'coordinator', null, 'New Guest Reservation', "$name - $date " . substr($time, 0, 5) . " ($ref). Guest mobile number verified by SMS OTP.");
     if ($sharedContact) {
         notify($pdo, 'coordinator', null, 'Shared Contact Number', "$name used a mobile number that also appears on another patient record. Please verify the patient details during confirmation/check-in.");
     }
-    log_activity($pdo, $aid, 'guest_appointment_requested', $sharedContact ? 'Email verification optional; shared contact flagged for review.' : 'Email verification optional; SMS unavailable.');
-    if ($emailVerified) {
+    log_activity($pdo, $aid, 'guest_appointment_requested', $sharedContact ? 'SMS verified; shared contact flagged for review.' : 'SMS verified.');
+    if ($verifiedRow) {
         $consume = $pdo->prepare("DELETE FROM guest_otp_verifications WHERE id = ? AND verification_token = ?");
         $consume->execute([$verifiedRow['id'], $verificationToken]);
         if ($consume->rowCount() !== 1) throw new RuntimeException('Verification token already used.');

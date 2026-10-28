@@ -38,9 +38,13 @@ try {
 
     // Rule #13: allowed anytime, reason optional, no cutoff.
     if ($action === 'cancel') {
-        $reason = trim($d['reason'] ?? '');
+        $reason = trim((string)($d['reason'] ?? ''));
+        if (mb_strlen($reason) < 3 || mb_strlen($reason) > 255) {
+            json_out(['success' => false, 'message' => 'Please give a reason for cancelling (3 to 255 characters).'], 422);
+        }
         $pdo->prepare("UPDATE appointments SET status = 'Cancelled', cancel_reason = ? WHERE id = ?")
-            ->execute([$reason !== '' ? $reason : null, $id]);
+            ->execute([$reason, $id]);
+        log_activity($pdo, $id, 'appointment_cancelled_by_patient', 'Reason: ' . $reason);
         $msg = "{$app['patient_name']} ({$app['reference_code']}) cancelled {$app['appointment_date']} " .
                substr($app['appointment_time'], 0, 5) . '. The slot is now free.' . ($reason !== '' ? " Reason: $reason" : '');
         notify_doctor($pdo, (int)$app['doctor_id'], 'Patient Cancelled', $msg);

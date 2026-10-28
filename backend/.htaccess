@@ -1,0 +1,8 @@
+# Private files and maintenance/background scripts must not be reachable from the browser.
+<FilesMatch "^(config\.php|sms_gateway_private\.php|\.schema_version)$">
+    Require all denied
+</FilesMatch>
+<IfModule mod_rewrite.c>
+RedirectMatch 403 ^.*/jobs/.*$
+</IfModule>
+Options -Indexes
